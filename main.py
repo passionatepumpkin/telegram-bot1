@@ -1,9 +1,11 @@
 import telebot
 import webbrowser
 import requests
-
+from github import Github
+github_token = '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'
 bot = telebot.TeleBot('6666956230:AAFUdeDeq1U5HGnZWzZX-1M21qnKa6znS38')
-
+github_username = 'passionatepumpkin'
+repo_name = 'telegram-bot1'
 
 @bot.message_handler(commands=['start'])
 def main(message):
@@ -11,37 +13,53 @@ def main(message):
     item1 = telebot.types.KeyboardButton("/help")
     item2 = telebot.types.KeyboardButton("/source")
     markup.add(item1, item2)
-    bot.send_message(message.chat.id, f'Приветствую, {message.from_user.first_name}! Выберите команду:', reply_markup=markup) #получение id чата, отправка сообщения
+    bot.send_message(message.chat.id, f'Приветствую, {message.from_user.first_name}!', reply_markup=markup) #получение id чата, отправка сообщения
 
 
 @bot.message_handler(commands=['help'])
 def help(message):
-    bot.send_message(message.chat.id, '<strike>Тут должна быть помощь...</strike>', parse_mode='html')
+    bot.send_message(message.chat.id, f'<b>Доступные команды:</b> \n \
+/start - Начать взаимодействие с ботом.\n \
+/help - Показать список доступных команд и их описания.\n \
+/source - Получить ссылку на исходный код бота.\n \
+/image - Получить изображение из репозитория.\n \
+/audio - Получить аудио из репозитория.', parse_mode='html')
 
 
 @bot.message_handler(commands=['source'])
 def source(message):
-    bot.send_message(message.chat.id, f'Вы были перенаправлены на веб-страницу. Если вдруг этого не произошло, пожалуйста, нажмите на ссылку: <a>https://github.com/passionatepumpkin/</a>', parse_mode='html')
-    webbrowser.open('https://github.com/passionatepumpkin/')
+    bot.send_message(message.chat.id, f'Вы были перенаправлены на веб-страницу. Если вдруг этого не произошло, пожалуйста, нажмите на ссылку: <a>https://github.com/passionatepumpkin/telegram-bot1/blob/main/main.py</a>', parse_mode='html')
+    webbrowser.open('https://github.com/passionatepumpkin/telegram-bot1/blob/main/main.py')
 
 
 @bot.message_handler(commands=['image'])
-def search_image(message):
-    query = message.text.split("/image ", 1)[1]  # Извлечь поисковой запрос из команды. разделить 1 раз, извлечь часть строки с индексом [1]
-    search_url = f"https://yandex.ru/images/search?text={query}"
-    # Выполнить запрос к поисковой системе и обработать результаты
-    response = requests.get(search_url)
-    if response.status_code == 200: #код успешно выполненного запроса HTTPS
-        images = response.json()[""]
-        for image in images:
-            image_url = image["url"]
-            bot.send_photo(message.chat.id, image_url)
+def get_image(message):
+    try:
+        g = Github(github_token)
+        repo = g.get_user(github_username).get_repo(repo_name)
+        file_contents = repo.get_contents("photo_8_2023-03-30_19-05-29.jpg")
+        if file_contents:
+            image_url = file_contents.download_url
+            bot.send_photo(message.chat.id, requests.get(image_url).content)
         else:
-            bot.send_message(message.chat.id, "Извините, не удалось найти изображения.")
+            bot.reply_to(message, "Изображение не найдено в репозитории.")
+    except Exception as e:
+        bot.reply_to(message, f"Произошла ошибка: {str(e)}")
 
 
-
-
+@bot.message_handler(commands=['audio'])
+def get_audio(message):
+    try:
+        g = Github(github_token)
+        repo = g.get_user(github_username).get_repo(repo_name)
+        file_contents = repo.get_contents("Lana Del Rey - Pink Champagne.mp3")
+        if file_contents:
+            audio_url = file_contents.download_url
+            bot.send_audio(message.chat.id, requests.get(audio_url).content)
+        else:
+            bot.reply_to(message, "Аудио не найдено в репозитории.")
+    except Exception as e:
+        bot.reply_to(message, f"Произошла ошибка: {str(e)}")
 
 
 bot.polling(none_stop=True)
